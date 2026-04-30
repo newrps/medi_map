@@ -1,0 +1,37 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: medi-map-backend
+    restart: unless-stopped
+    environment:
+      MEDI_SERVICE_KEY: ${MEDI_SERVICE_KEY}
+      PORT: 8771
+      RUST_LOG: ${RUST_LOG:-info}
+    expose:
+      - "8771"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8771/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - medi-map
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: medi-map-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${HOST_PORT:-18082}:80"
+    networks:
+      - medi-map
+
+networks:
+  medi-map:
+    driver: bridge

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#D32F2F" />
+
+    <title>Ps의료지도 — 야간·주말·공휴일 약국·병원 응급실 지도</title>
+    <meta name="description" content="현재 시간 기준 진료 중인 야간·주말·공휴일 약국, 병원, 응급실을 지도에서 한눈에. 위치 기반 가까운 의료기관 빠르게 찾기, 응급실 실시간 가용 병상 정보까지." />
+    <meta name="keywords" content="야간 약국,주말 약국,공휴일 약국,야간 병원,주말 병원,응급실,응급의료기관,심야 약국,일요일 진료,공휴일 병원,24시간 약국,근처 약국,응급실 위치,당직약국" />
+    <meta name="author" content="Ps의료지도" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://med.zam.kr/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ps의료지도" />
+    <meta property="og:title" content="Ps의료지도 — 야간·주말 약국·병원 지도" />
+    <meta property="og:description" content="지금 진료 중인 야간·주말·공휴일 의료기관을 위치 기반으로 빠르게 찾기." />
+    <meta property="og:url" content="https://med.zam.kr/" />
+    <meta property="og:locale" content="ko_KR" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Ps의료지도 — 야간·주말 약국·병원" />
+    <meta name="twitter:description" content="지금 진료 중인 의료기관을 지도에서." />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Ps의료지도",
+      "alternateName": "Korean Pharmacy & Hospital Map",
+      "url": "https://med.zam.kr/",
+      "inLanguage": "ko-KR",
+      "description": "야간·주말·공휴일 약국·병원·응급실 위치와 운영 정보를 지도에서 검색"
+    }
+    </script>
+
+    %sveltekit.head%
+  </head>
+  <body data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+    <noscript>
+      <h1>Ps의료지도 — 야간·주말·공휴일 약국·병원 지도</h1>
+      <p>현재 시간 기준 진료 중인 약국·병원·응급실을 지도에서 한눈에 확인하고, 가까운 응급실의 실시간 가용 병상 정보까지 제공하는 서비스입니다.</p>
+      <h2>주요 기능</h2>
+      <ul>
+        <li>전국 약국·병원·응급실 마커 — 색상 구분(약국/병원/응급실)</li>
+        <li>현재 시간 기준 "지금 진료 중" 자동 필터</li>
+        <li>야간/주말/공휴일 빠른 필터</li>
+        <li>위치 기반 가까운 순 정렬</li>
+        <li>응급실 실시간 가용 병상 정보 (5분 단위 갱신)</li>
+        <li>요일별 운영시간, 주소, 전화 표시</li>
+      </ul>
+      <p>데이터 출처: 보건복지부 / 국립중앙의료원 응급의료정보 OpenAPI (E-Gen).</p>
+    </noscript>
+  </body>
+</html>
