@@ -6,8 +6,10 @@
   export let facilities: Facility[] = [];
   export let openOnly = false;
   export let userPos: { lat: number; lon: number } | null = null;
-  export let userAccuracy: number | null = null; // meters
+  export let userAccuracy: number | null = null;
   export let isOpenFn: (f: Facility) => boolean = () => true;
+  // 외부에서 마커로 줌 트리거. ts가 바뀔 때마다 fly.
+  export let focusTarget: { lat: number; lon: number; ts: number } | null = null;
 
   const dispatch = createEventDispatcher<{
     select: Facility;
@@ -28,9 +30,10 @@
     await import('leaflet/dist/leaflet.css');
 
     map = L.map(mapEl, {
-      center: [37.5665, 126.9780], // 서울 시청 기본
+      center: [37.5665, 126.9780],
       zoom: 12,
-      zoomControl: true
+      zoomControl: false,        // +/- 버튼 제거
+      attributionControl: false
     });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
@@ -71,10 +74,11 @@
     renderMarkers();
   });
 
-  /** 외부에서 마커 위치로 이동/팝업 */
-  export function focusFacility(f: Facility) {
-    if (!map || f.lat == null || f.lon == null) return;
-    map.flyTo([f.lat, f.lon], Math.max(map.getZoom(), 16), { duration: 0.6 });
+  // focusTarget watch
+  let lastFocusTs = 0;
+  $: if (map && focusTarget && focusTarget.ts !== lastFocusTs) {
+    lastFocusTs = focusTarget.ts;
+    map.flyTo([focusTarget.lat, focusTarget.lon], Math.max(map.getZoom(), 16), { duration: 0.6 });
   }
 
   onDestroy(() => { if (map) map.remove(); });

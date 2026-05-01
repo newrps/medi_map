@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Facility, HolidayClinic } from '$lib/api';
-  import { kindColor, isOpenNow, distanceKm, fetchRealtimeBeds } from '$lib/api';
+  import { kindColor, isOpenNow, distanceKm, fetchRealtimeBeds, kakaoDirectionsUrl, naverDirectionsUrl } from '$lib/api';
   import { createEventDispatcher } from 'svelte';
 
   export let facility: Facility;
@@ -29,19 +29,35 @@
   $: dist = userPos && facility.lat != null && facility.lon != null
     ? distanceKm(userPos, { lat: facility.lat, lon: facility.lon }) : null;
 
+  $: dest = facility.lat != null && facility.lon != null
+    ? { name: facility.name, lat: facility.lat, lon: facility.lon } : null;
+
   function naverUrl(): string {
-    const q = encodeURIComponent(facility.address ?? facility.name);
-    return `https://map.naver.com/p/search/${q}`;
+    if (!dest) return `https://map.naver.com/p/search/${encodeURIComponent(facility.name)}`;
+    return naverDirectionsUrl(dest, userPos);
   }
   function kakaoUrl(): string {
-    const q = encodeURIComponent(facility.address ?? facility.name);
-    return `https://map.kakao.com/?q=${q}`;
+    if (!dest) return `https://map.kakao.com/?q=${encodeURIComponent(facility.name)}`;
+    return kakaoDirectionsUrl(dest, userPos);
   }
   function telUrl(): string | null {
     return facility.phone ? `tel:${facility.phone.replace(/[^\d+]/g, '')}` : null;
   }
 
   const DOW_LABEL = { Mon:'월', Tue:'화', Wed:'수', Thu:'목', Fri:'금', Sat:'토', Sun:'일', Hol:'공휴일' };
+
+  function extractRealtime(rt: any): any | null {
+    const item = rt?.response?.body?.items?.item;
+    if (!item) return null;
+    return Array.isArray(item) ? item[0] : item;
+  }
+  function fmtHvidate(s: string): string {
+    // 20260501072815 → 2026-05-01 07:28
+    if (!/^\d{8}/.test(s)) return s;
+    const y = s.slice(0,4), m = s.slice(4,6), d = s.slice(6,8);
+    const hh = s.slice(8,10) || '', mm = s.slice(10,12) || '';
+    return `${y}-${m}-${d}` + (hh && mm ? ` ${hh}:${mm}` : '');
+  }
 </script>
 
 <div class="backdrop" on:click={() => dispatch('close')} role="presentation"></div>
@@ -83,8 +99,31 @@
       <h3>실시간 응급실 가용 병상</h3>
       {#if realtimeLoading}
         <p class="state">불러오는 중…</p>
-      {:else if realtime}
-        <pre class="rt">{JSON.stringify(realtime, null, 2)}</pre>
+      {:else}
+        {@const r = extractRealtime(realtime)}
+        {#if r}
+          <div class="rt-grid">
+            {#if r.hvec != null}<div class="rt-cell"><span class="lbl">응급실</span><b class="val">{r.hvec}</b></div>{/if}
+            {#if r.hvoc != null}<div class="rt-cell"><span class="lbl">수술실</span><b class="val">{r.hvoc}</b></div>{/if}
+            {#if r.hvgc != null}<div class="rt-cell"><span class="lbl">입원실</span><b class="val">{r.hvgc}</b></div>{/if}
+            {#if r.hvncc != null}<div class="rt-cell"><span class="lbl">신생아 중환자</span><b class="val">{r.hvncc}</b></div>{/if}
+            {#if r.hv2 != null}<div class="rt-cell"><span class="lbl">약물 중환자</span><b class="val">{r.hv2}</b></div>{/if}
+            {#if r.hv3 != null}<div class="rt-cell"><span class="lbl">외과 중환자</span><b class="val">{r.hv3}</b></div>{/if}
+          </div>
+          <div class="rt-equip">
+            {#if r.hvecmoayn === 'Y'}<span>ECMO</span>{/if}
+            {#if r.hvctayn === 'Y'}<span>CT</span>{/if}
+            {#if r.hvmriayn === 'Y'}<span>MRI</span>{/if}
+            {#if r.hvangioayn === 'Y'}<span>혈관조영</span>{/if}
+            {#if r.hvincuayn === 'Y'}<span>인큐베이터</span>{/if}
+            {#if r.hvventiayn === 'Y'}<span>인공호흡기</span>{/if}
+            {#if r.hvoxyayn === 'Y'}<span>산소</span>{/if}
+            {#if r.hvcrrtayn === 'Y'}<span>CRRT</span>{/if}
+          </div>
+          {#if r.hvidate}<p class="rt-time">📡 {fmtHvidate(String(r.hvidate))} 기준</p>{/if}
+        {:else}
+          <p class="state empty">현재 정보 없음</p>
+        {/if}
       {/if}
     {/if}
 
@@ -102,8 +141,8 @@
 
     <div class="actions">
       {#if telUrl()}<a class="btn primary" href={telUrl()}>☎ 전화</a>{/if}
-      <a class="btn" href={naverUrl()} target="_blank" rel="noopener">네이버 지도</a>
-      <a class="btn" href={kakaoUrl()} target="_blank" rel="noopener">카카오맵</a>
+      <a class="btn" href={kakaoUrl()} target="_blank" rel="noopener">🚗 카카오 길찾기</a>
+      <a class="btn" href={naverUrl()} target="_blank" rel="noopener">🚗 네이버 길찾기</a>
     </div>
   </div>
 </div>
@@ -150,7 +189,30 @@
     width: 60px; padding: 4px 0;
   }
   .hours td { font-family: ui-monospace, monospace; color: #333; }
-  .rt { background: #f6f6f6; padding: 8px; border-radius: 6px; font-size: 10px; max-height: 200px; overflow: auto; }
+  .rt-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  .rt-cell {
+    background: #fff5f5; border: 1px solid #ffe5e5;
+    border-radius: 6px; padding: 5px 6px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 1px;
+  }
+  .rt-cell .lbl { font-size: 10px; color: #777; }
+  .rt-cell .val { font-size: 16px; color: #B71C1C; font-weight: 700; }
+  .rt-equip {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    margin-bottom: 6px;
+  }
+  .rt-equip span {
+    background: #E8F5E9; color: #2E7D32;
+    border-radius: 6px; padding: 2px 7px;
+    font-size: 10px; font-weight: 600;
+  }
+  .rt-time { font-size: 10px; color: #999; margin: 4px 0 0; text-align: right; }
   .state { color: #888; font-size: 12px; }
   .note {
     margin-top: 10px; padding: 8px;

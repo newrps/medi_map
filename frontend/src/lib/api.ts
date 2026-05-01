@@ -92,6 +92,31 @@ function toMin(hhmm: string): number | null {
   return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
 }
 
+/** 카카오맵 길찾기 URL — 도착지 좌표 기반. 내 위치 있으면 출발지도 포함. */
+export function kakaoDirectionsUrl(
+  dest: { name: string; lat: number; lon: number },
+  origin?: { lat: number; lon: number } | null
+): string {
+  const eName = encodeURIComponent(dest.name);
+  if (origin) {
+    return `https://map.kakao.com/link/from/내위치,${origin.lat},${origin.lon}/to/${eName},${dest.lat},${dest.lon}`;
+  }
+  return `https://map.kakao.com/link/to/${eName},${dest.lat},${dest.lon}`;
+}
+
+/** 네이버맵 길찾기 URL — 도착지 좌표 기반 */
+export function naverDirectionsUrl(
+  dest: { name: string; lat: number; lon: number },
+  origin?: { lat: number; lon: number } | null
+): string {
+  const eName = encodeURIComponent(dest.name);
+  // /p/directions/{slng},{slat},{sname},,/{dlng},{dlat},{dname},,/{mode}
+  if (origin) {
+    return `https://map.naver.com/p/directions/${origin.lon},${origin.lat},%EB%82%B4%EC%9C%84%EC%B9%98,,/${dest.lon},${dest.lat},${eName},,/-/transit`;
+  }
+  return `https://map.naver.com/p/directions/-/-/${dest.lon},${dest.lat},${eName},,/-/transit`;
+}
+
 export function distanceKm(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
   const R = 6371;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;

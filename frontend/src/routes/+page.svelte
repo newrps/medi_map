@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import Map from '$lib/components/Map.svelte';
+  import MapView from '$lib/components/Map.svelte';
   import FacilityDetail from '$lib/components/FacilityDetail.svelte';
   import NearbyList from '$lib/components/NearbyList.svelte';
   import { fetchHospitals, fetchPharmacies, fetchAEDs, fetchHolidayClinics, isOpenNow, distanceKm } from '$lib/api';
@@ -20,7 +20,6 @@
   let userAccuracy: number | null = null;
   let userPosError: string | null = null;
   let pickMode = false; // 지도 클릭으로 위치 수정 모드
-  let openOnly = true;
   let showHospitals = true;
   let showPharmacies = true;
   let showAEDs = false;
@@ -34,8 +33,8 @@
   // 화면 영역 (Map에서 dispatch)
   let bounds: { south: number; west: number; north: number; east: number; center: { lat: number; lon: number }; zoom: number } | null = null;
   $: if (bounds) mapZoom = bounds.zoom;
-  let mapRef: any;
-  let listCollapsed = false;
+  let listCollapsed = true; // 기본 접힘 (지도 가리지 않게)
+  let focusTarget: { lat: number; lon: number; ts: number } | null = null;
 
   // 1분마다 갱신
   setInterval(() => (now = new Date()), 60_000);
@@ -143,21 +142,19 @@
 
   function pickFacility(f: Facility) {
     selected = f;
-    if (mapRef && typeof mapRef.focusFacility === 'function') {
-      mapRef.focusFacility(f);
+    if (f.lat != null && f.lon != null) {
+      focusTarget = { lat: f.lat, lon: f.lon, ts: Date.now() };
     }
   }
 </script>
 
 <main class="full-map">
-  <Map
-    bind:this={mapRef}
+  <MapView
     facilities={visible}
-    {openOnly}
     {userPos}
     {userAccuracy}
     {pickMode}
-    isOpenFn={isOpen}
+    {focusTarget}
     on:select={(e) => (selected = e.detail)}
     on:bounds={(e) => (bounds = e.detail)}
     on:setUserPos={(e) => setManualPos(e.detail)}
@@ -184,9 +181,6 @@
     </div>
 
     <div class="filter-row">
-      <button class="chip" class:active={openOnly} on:click={() => (openOnly = !openOnly)}>
-        🟢 지금 진료 중만
-      </button>
       <button class="chip" class:active={showHospitals} on:click={() => (showHospitals = !showHospitals)}>
         🏥 병원·응급실
       </button>
@@ -199,36 +193,9 @@
       </button>
     </div>
 
-    {#if userPos}
-      <div class="loc-row">
-        <span class="loc-tag">📍 내 위치 기준</span>
-        <label>
-          반경
-          <select bind:value={radiusKm}>
-            <option value={1}>1km</option>
-            <option value={2}>2km</option>
-            <option value={5}>5km</option>
-            <option value={10}>10km</option>
-            <option value={20}>20km</option>
-          </select>
-        </label>
-        <span class="ct">{visible.length}곳</span>
-      </div>
-      <div class="loc-tools">
-        <button class="mini" on:click={requestLocation} title="브라우저에 다시 위치 요청">🔄 다시 받기</button>
-        <button class="mini" class:active={pickMode} on:click={() => (pickMode = !pickMode)}
-          title="지도에서 클릭한 곳을 내 위치로 설정">
-          {pickMode ? '📍 클릭하여 지정...' : '✎ 위치 수정'}
-        </button>
-        {#if userAccuracy && userAccuracy > 100}
-          <span class="acc-warn" title="브라우저가 추정한 정확도. Wi-Fi/IP 기반이면 부정확할 수 있어요.">
-            정확도 ±{Math.round(userAccuracy)}m
-          </span>
-        {/if}
-      </div>
-    {:else}
+    {#if !userPos}
       <button class="loc-cta" on:click={requestLocation}>
-        📍 내 위치 사용 — 가까운 곳만 표시
+        📍 내 위치 사용
         {#if userPosError}<span class="err">({userPosError})</span>{/if}
       </button>
     {/if}
